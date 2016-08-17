@@ -36,6 +36,12 @@ public class WithdrawnDoC {
     static String[][] Table = null;
 
     public static void main(String[] args) throws IOException {
+        FileWriter fw = new FileWriter("H:/Logs/WithdrawnDoC.log", true);
+        BufferedWriter bw = new BufferedWriter(fw);
+        DateFormat dateFormater = new SimpleDateFormat("dd.MM.yyyy");
+        String modDate = dateFormater.format(new Date());
+        bw.newLine();
+        bw.write(modDate);
 
         con = Utils.getConnection();
 
@@ -78,104 +84,144 @@ public class WithdrawnDoC {
         Map<Integer, File> datesList1 = new HashMap<Integer, File>();
 
         for (File subDir : subDirs) {
-            File[] docFiles = subDir.listFiles(new FileFilter() {
+            File[] doc_dopFiles = subDir.listFiles(new FileFilter() {
 
                 @Override
                 public boolean accept(File pathname) {
-                    return pathname.isFile() && (pathname.getName().startsWith("DoC_" + subDir.getName()));
+                    return pathname.isFile() && (pathname.getName().startsWith("DoC_" + subDir.getName()) || pathname.getName().startsWith("DoP_" + subDir.getName()));
                 }
             });
-            if (docFiles.length > 0) {
-                FileWriter fw = new FileWriter("H:/Logs/WithdrawnDoC.log", true);
-                BufferedWriter bw = new BufferedWriter(fw);
-                DateFormat dateFormater = new SimpleDateFormat("dd.MM.yyyy");
-                String modDate = dateFormater.format(new Date());
-                bw.newLine();
-                bw.write(modDate);
-                for (int i = 0; i < docFiles.length; i += 1) {
+
+            if (doc_dopFiles.length > 0) {
+                for (int i = 0; i < doc_dopFiles.length; i += 1) {
+                    int dateDoc = 0;
                     try {
-                        int dateDoc = Integer.parseInt(docFiles[i].toString().substring(docFiles[i].toString().length() - 12, docFiles[i].toString().length() - 4));
-                        datesList1.put(dateDoc, docFiles[i]);
-                        datesList.add(dateDoc);
+                        dateDoc = Integer.parseInt(doc_dopFiles[i].toString().substring(doc_dopFiles[i].toString().length() - 12, doc_dopFiles[i].toString().length() - 4));
+                        if (doc_dopFiles[i].getName().startsWith("DoC_")) {
+                            datesList1.put(dateDoc, doc_dopFiles[i]);
+                            datesList.add(dateDoc);
+                            pocedureDoC(bw, datesList1, datesList);
+                        } else if (doc_dopFiles[i].getName().startsWith("DoP_")) {
+                            datesList1.put(dateDoc, doc_dopFiles[i]);
+                            pocedureDoP(bw, datesList1);
+                        }
                     } catch (NumberFormatException e) {
                     }
                 }
-                if (datesList.size() > 0) {
-                    int max = datesList.get(0);
-                    for (int counter = 1; counter < datesList.size(); counter++) {
-                        if (datesList.get(counter) > max) {
-                            max = datesList.get(counter);
-                        }
-                    }
-                    Set<Integer> keys = datesList1.keySet();
-
-                    for (Integer i : keys) {
-
-                        String prodContFolder = datesList1.get(i).getAbsoluteFile().getParent();
-                        String sap = datesList1.get(i).getParentFile().getName().substring(0, 2) + "." + datesList1.get(i).getParentFile().getName().substring(2, 5) + "." + datesList1.get(i).getParentFile().getName().substring(5, 7);
-                        String fileName = datesList1.get(i).getName();
-                        String itemNo = null;
-                        for (int j = 0; j < Table.length; j++) {
-                            if (Table[j][0].equals(sap)) {
-                                itemNo = Table[j][1];
-                                itemNo = itemNo.replace("/", "_");
-                            }
-                        }
-                        File certDir = new File(certificates + "/" + itemNo);
-                        if (!certDir.exists()) {
-                            certDir.mkdirs();
-                        }
-                        File[] supplierDirs = certDir.listFiles(new FileFilter() {
-
-                            @Override
-                            public boolean accept(File pathname) {
-                                return pathname.isDirectory();
-                            }
-                        });
-                        String certFolder = null;
-                        if (supplierDirs.length > 0) {
-                            certFolder = supplierDirs[0].toString();
-                        } else {
-                            certFolder = certDir.toString();
-                        }
-
-                        if (!datesList1.get(i).equals(datesList1.get(max))) {
-                            String doneFolder = certFolder + "/_Done";
-                            boolean doneExists = new File(doneFolder).exists();
-                            if (doneExists) {
-                                FileRename(bw, prodContFolder, doneFolder, fileName);
-                            } else {
-                                System.out.println(doneFolder + " not exists !!!");
-                                bw.newLine();
-                                bw.write(doneFolder + " not exists !!!");
-                                boolean doneCreate = new File(doneFolder).mkdirs();
-                                if (doneCreate) {
-                                    System.out.println(doneFolder + " cteated");
-                                    bw.newLine();
-                                    bw.write(doneFolder + " created");
-                                    FileRename(bw, prodContFolder, doneFolder, fileName);
-                                } else {
-                                    System.out.println(doneFolder + " not cteated !!!");
-                                    bw.newLine();
-                                    bw.write(doneFolder + " not created !!!");
-                                }
-                            }
-                        } else {
-                            boolean destFileExists = new File(certFolder + "/" + fileName).exists();
-                            if (!destFileExists) {
-                                copyFile(bw, prodContFolder, certFolder, fileName);
-                            }
-                        }
-                    }
-                    datesList.clear();
-                    datesList1.clear();
-                }
-                bw.newLine();
-                bw.write("----------------------------------------------------");
-                bw.flush();
-                bw.close();
             }
         }
+        bw.newLine();
+        bw.write("----------------------------------------------------");
+        bw.flush();
+        bw.close();
+    }
+
+    private static void pocedureDoC(BufferedWriter bw, Map<Integer, File> datesList1, List<Integer> datesList) throws IOException {
+        if (datesList.size() > 0) {
+            int max = datesList.get(0);
+            for (int counter = 1; counter < datesList.size(); counter++) {
+                if (datesList.get(counter) > max) {
+                    max = datesList.get(counter);
+                }
+            }
+            Set<Integer> keys = datesList1.keySet();
+            for (Integer i : keys) {
+                String prodContFolder = datesList1.get(i).getAbsoluteFile().getParent();
+                String sap = datesList1.get(i).getParentFile().getName().substring(0, 2) + "." + datesList1.get(i).getParentFile().getName().substring(2, 5) + "." + datesList1.get(i).getParentFile().getName().substring(5, 7);
+                String fileName = datesList1.get(i).getName();
+                String itemNo = null;
+                for (int j = 0; j < Table.length; j++) {
+                    if (Table[j][0].equals(sap)) {
+                        itemNo = Table[j][1];
+                        itemNo = itemNo.replace("/", "_");
+                    }
+                }
+                File certDir = new File(certificates + "/" + itemNo);
+                if (!certDir.exists()) {
+                    certDir.mkdirs();
+                }
+                File[] supplierDirs = certDir.listFiles(new FileFilter() {
+
+                    @Override
+                    public boolean accept(File pathname) {
+                        return pathname.isDirectory();
+                    }
+                });
+                String certFolder = null;
+                if (supplierDirs.length > 0) {
+                    certFolder = supplierDirs[0].toString();
+                } else {
+                    certFolder = certDir.toString();
+                }
+                if (!datesList1.get(i).equals(datesList1.get(max))) {
+                    String doneFolder = certFolder + "/_Done";
+                    boolean doneExists = new File(doneFolder).exists();
+                    if (doneExists) {
+                        FileRename(bw, prodContFolder, doneFolder, fileName);
+                    } else {
+                        System.out.println(doneFolder + " not exists !!!");
+                        bw.newLine();
+                        bw.write(doneFolder + " not exists !!!");
+                        boolean doneCreate = new File(doneFolder).mkdirs();
+                        if (doneCreate) {
+                            System.out.println(doneFolder + " cteated");
+                            bw.newLine();
+                            bw.write(doneFolder + " created");
+                            FileRename(bw, prodContFolder, doneFolder, fileName);
+                        } else {
+                            System.out.println(doneFolder + " not cteated !!!");
+                            bw.newLine();
+                            bw.write(doneFolder + " not created !!!");
+                        }
+                    }
+                } else {
+                    boolean destFileExists = new File(certFolder + "/" + fileName).exists();
+                    if (!destFileExists) {
+                        copyFile(bw, prodContFolder, certFolder, fileName);
+                    }
+                }
+            }
+            datesList.clear();
+            datesList1.clear();
+        }
+    }
+
+    private static void pocedureDoP(BufferedWriter bw, Map<Integer, File> datesList1) throws IOException {
+        Set<Integer> keys = datesList1.keySet();
+        for (Integer i : keys) {
+            String prodContFolder = datesList1.get(i).getAbsoluteFile().getParent();
+            String sap = datesList1.get(i).getParentFile().getName().substring(0, 2) + "." + datesList1.get(i).getParentFile().getName().substring(2, 5) + "." + datesList1.get(i).getParentFile().getName().substring(5, 7);
+            String fileName = datesList1.get(i).getName();
+            String itemNo = null;
+            for (int j = 0; j < Table.length; j++) {
+                if (Table[j][0].equals(sap)) {
+                    itemNo = Table[j][1];
+                    itemNo = itemNo.replace("/", "_");
+                }
+            }
+            File certDir = new File(certificates + "/" + itemNo);
+            if (!certDir.exists()) {
+                certDir.mkdirs();
+            }
+            File[] supplierDirs = certDir.listFiles(new FileFilter() {
+
+                @Override
+                public boolean accept(File pathname) {
+                    return pathname.isDirectory();
+                }
+            });
+            String certFolder = null;
+            if (supplierDirs.length > 0) {
+                certFolder = supplierDirs[0].toString();
+            } else {
+                certFolder = certDir.toString();
+            }
+            boolean destFileExists = new File(certFolder + "/" + fileName).exists();
+            if (!destFileExists) {
+                copyFile(bw, prodContFolder, certFolder, fileName);
+            }
+        }
+        datesList1.clear();
     }
 
     private static void FileRename(BufferedWriter bw, String oldFolderName, String newFolderName, String fileName) throws IOException {
