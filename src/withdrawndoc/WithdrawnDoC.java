@@ -29,14 +29,15 @@ import java.util.logging.Logger;
 public class WithdrawnDoC {
 
     public static String productContent = "//172.16.55.197/design/Smartwares - Product Content/PRODUCTS";
-    public static String certificates = "G:/QC/Certificates";
+    public static String certificates = "\\\\file01\\SL-Data\\QC\\Certificates";
+    public static String logFile = "\\\\srvdata\\Data\\Automatisering\\Artur\\Logs\\WithdrawnDoC.log";
     static Connection con = null;
     static Statement st = null;
     static ResultSet rs = null;
     static String[][] Table = null;
 
     public static void main(String[] args) throws IOException {
-        FileWriter fw = new FileWriter("H:/Logs/WithdrawnDoC.log", true);
+        FileWriter fw = new FileWriter(logFile, true);
         BufferedWriter bw = new BufferedWriter(fw);
         DateFormat dateFormater = new SimpleDateFormat("dd.MM.yyyy");
         String modDate = dateFormater.format(new Date());
